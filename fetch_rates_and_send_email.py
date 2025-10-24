@@ -70,6 +70,32 @@ def compute_prices(gold_price, silver_price):
     return prices
 
 
+def get_previous_day_prices(filepath, current_date):
+    """Return price dict from the last row before current_date"""
+    if not os.path.exists(filepath):
+        return None
+    with open(filepath, "r") as file:
+        reader = csv.DictReader(file)
+        rows = list(reader)
+        for row in reversed(rows):
+            # Only compare dates, skip current day
+            if row["date"] < current_date:
+                return row
+    return None
+
+
+def price_diff(current, previous, key):
+    if not previous or key not in previous:
+        return "N/A"
+    diff = float(current) - float(previous[key])
+    if diff > 0:
+        return f"🔺 {diff:.2f}"
+    elif diff < 0:
+        return f"🔻{abs(diff):.2f}"
+    else:
+        return "↔ 0.00"
+
+
 def save_gold_silver_rates(filepath, date, time, prices):
     """Append rates to CSV, writing header if file doesn't exist."""
     file_exists = os.path.exists(filepath)
@@ -102,7 +128,9 @@ def login_to_email(email_address, email_password):
         raise ConnectionError("SMTP login failed: " + str(e))
 
 
-def create_email(prices, sender_name, recipient, recipient_name):
+def create_email(prices, sender_name, recipient, recipient_name,
+                 gold_24k_diff, gold_22k_diff, gold_18k_diff,
+                 silver_g_diff, silver_kg_diff):
     """Create an email"""
     msg = EmailMessage()
     msg["Subject"] = f"🪙 Today's Gold, Silver Prices"
@@ -114,6 +142,13 @@ def create_email(prices, sender_name, recipient, recipient_name):
         f"Hi {recipient_name},\n\n"
         f"Today's Gold, Silver Prices:\n\n"
         f"1. GOLD\n"
+        f"  24k (1g): {INR_SYMBOL} {prices['gold_24k_per_gram']:.2f} ({gold_24k_diff})\n"
+        f"  22k (1g): {INR_SYMBOL} {prices['gold_22k_per_gram']:.2f} ({gold_22k_diff})\n"
+        f"  18k (1g): {INR_SYMBOL} {prices['gold_18k_per_gram']:.2f} ({gold_18k_diff})\n"
+        f"2. SILVER\n"
+        f"  (1g): {INR_SYMBOL} {prices['silver_per_gram']:.2f} ({silver_g_diff})\n"
+        f"  (1kg): {INR_SYMBOL} {prices['silver_per_kg']:.2f} ({silver_kg_diff})\n\n"
+        f"3. GOLD\n"
         f"  (a) 24k: {INR_SYMBOL} {prices['gold_24k_per_gram']:.2f} per gram | "
         f"{INR_SYMBOL} {prices['gold_24k_8gram']:.2f} (8g) | "
         f"{INR_SYMBOL} {prices['gold_24k_10gram']:.2f} (10g)\n"
@@ -123,7 +158,7 @@ def create_email(prices, sender_name, recipient, recipient_name):
         f"  (c) 18k: {INR_SYMBOL} {prices['gold_18k_per_gram']:.2f} per gram | "
         f"{INR_SYMBOL} {prices['gold_18k_8gram']:.2f} (8g) | "
         f"{INR_SYMBOL} {prices['gold_18k_10gram']:.2f} (10g)\n\n"
-        f"2. SILVER\n"
+        f"4. SILVER\n"
         f"  (a) Silver (per Gram): {INR_SYMBOL} {prices['silver_per_gram']:.2f}\n"
         f"  (b) Silver (per Kg): {INR_SYMBOL} {prices['silver_per_kg']:.2f}\n\n"
         f"Regards,\n{sender_name}"
@@ -136,6 +171,39 @@ def create_email(prices, sender_name, recipient, recipient_name):
         <body>
             <p>Hi {recipient_name},</p>
             <h3>Today's Gold & Silver Prices</h3>
+            <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">
+                <tr>
+                    <th>Type</th>
+                    <th>Price</th>
+                    <th>Change</th>
+                </tr>
+                <tr>
+                    <td>Gold 24k (1g)</td>
+                    <td>{INR_SYMBOL} {prices['gold_24k_per_gram']:.2f}</td>
+                    <td>{gold_24k_diff}</td>
+                </tr>
+                <tr>
+                    <td>Gold 22k (1g)</td>
+                    <td>{INR_SYMBOL} {prices['gold_22k_per_gram']:.2f}</td>
+                    <td>{gold_22k_diff}</td>
+                </tr>
+                <tr>
+                    <td>Gold 18k (1g)</td>
+                    <td>{INR_SYMBOL} {prices['gold_18k_per_gram']:.2f}</td>
+                    <td>{gold_18k_diff}</td>
+                </tr>
+                <tr>
+                    <td>Silver (1g)</td>
+                    <td>{INR_SYMBOL} {prices['silver_per_gram']:.2f}</td>
+                    <td>{silver_g_diff}</td>
+                </tr>
+                <tr>
+                    <td>Silver (1kg)</td>
+                    <td>{INR_SYMBOL} {prices['silver_per_kg']:.2f}</td>
+                    <td>{silver_kg_diff}</td>
+                </tr>
+            </table>
+            <br><br>
             <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">
                 <thead>
                     <tr>
@@ -195,11 +263,21 @@ def main():
 
     prices = compute_prices(gold_price, silver_price)
 
+    # After computing prices and having date
+    previous = get_previous_day_prices(CSV_FILE, date)
+
+    gold_24k_diff = price_diff(prices["gold_24k_per_gram"], previous, "gold_price_24k")
+    gold_22k_diff = price_diff(prices["gold_22k_per_gram"], previous, "gold_price_22k")
+    gold_18k_diff = price_diff(prices["gold_18k_per_gram"], previous, "gold_price_18k")
+    silver_g_diff = price_diff(prices["silver_per_gram"], previous, "silver_price_g")
+    silver_kg_diff = price_diff(prices["silver_per_kg"], previous, "silver_price_kg")
+
     save_gold_silver_rates(CSV_FILE, date, time, prices)
 
     try:
         smtp = login_to_email(email_address, email_password)
-        msg = create_email(prices, sender_name, recipient, recipient_name)
+        msg = create_email(prices, sender_name, recipient, recipient_name,
+                           gold_24k_diff, gold_22k_diff, gold_18k_diff, silver_g_diff, silver_kg_diff)
         smtp.send_message(msg)
         print("Email sent successfully!")
         smtp.quit()
