@@ -128,8 +128,57 @@ def create_email(prices, sender_name, recipient, recipient_name):
         f"  (b) Silver (per Kg): {INR_SYMBOL} {prices['silver_per_kg']:.2f}\n\n"
         f"Regards,\n{sender_name}"
     )
-
     msg.set_content(text_content)
+
+    # HTML version
+    html_content = f"""
+    <html>
+        <body>
+            <p>Hi {recipient_name},</p>
+            <h3>Today's Gold & Silver Prices</h3>
+            <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>1g</th>
+                        <th>8g</th>
+                        <th>10g</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Gold 24k</td>
+                        <td>{INR_SYMBOL} {prices["gold_24k_per_gram"]:.2f}</td>
+                        <td>{INR_SYMBOL} {prices["gold_24k_8gram"]:.2f}</td>
+                        <td>{INR_SYMBOL} {prices["gold_24k_10gram"]:.2f}</td>
+                    </tr>
+                    <tr>
+                        <td>Gold 22k</td>
+                        <td>{INR_SYMBOL} {prices["gold_22k_per_gram"]:.2f}</td>
+                        <td>{INR_SYMBOL} {prices["gold_22k_8gram"]:.2f}</td>
+                        <td>{INR_SYMBOL} {prices["gold_22k_10gram"]:.2f}</td>
+                    </tr>
+                    <tr>
+                        <td>Gold 18k</td>
+                        <td>{INR_SYMBOL} {prices["gold_18k_per_gram"]:.2f}</td>
+                        <td>{INR_SYMBOL} {prices["gold_18k_8gram"]:.2f}</td>
+                        <td>{INR_SYMBOL} {prices["gold_18k_10gram"]:.2f}</td>
+                    </tr>
+                    <tr>
+                        <td>Silver (Gram)</td>
+                        <td colspan="3">{INR_SYMBOL} {prices["silver_per_gram"]:.2f}</td>
+                    </tr>
+                    <tr>
+                        <td>Silver (Kg)</td>
+                        <td colspan="3">{INR_SYMBOL} {prices["silver_per_kg"]:.2f}</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="margin-top:20px;">Regards,<br>{sender_name}</p>
+        </body>
+    </html>
+    """
+    msg.add_alternative(html_content, subtype="html")
 
     return msg
 
