@@ -60,12 +60,18 @@ def compute_prices(gold_price, silver_price):
         "gold_18k_per_gram": gold_24k_per_gram * GOLD_RATIOS["18k"],
         "silver_per_gram": silver_price / TROY_OZ_GRAMS,
     }
+    prices["gold_24k_8gram"] = prices["gold_24k_per_gram"] * 8
+    prices["gold_24k_10gram"] = prices["gold_24k_per_gram"] * 10
+    prices["gold_22k_8gram"] = prices["gold_22k_per_gram"] * 8
+    prices["gold_22k_10gram"] = prices["gold_22k_per_gram"] * 10
+    prices["gold_18k_8gram"] = prices["gold_18k_per_gram"] * 8
+    prices["gold_18k_10gram"] = prices["gold_18k_per_gram"] * 10
     prices["silver_per_kg"] = prices["silver_per_gram"] * 1000
     return prices
 
 
 def save_gold_silver_rates(filepath, date, time, prices):
-    """Append rates to CSV, writing header if file doesn't exits."""
+    """Append rates to CSV, writing header if file doesn't exist."""
     file_exists = os.path.exists(filepath)
     with open(filepath, "a", newline="") as file:
         writer = csv.writer(file)
@@ -108,9 +114,15 @@ def create_email(prices, sender_name, recipient, recipient_name):
         f"Hi {recipient_name},\n\n"
         f"Today's Gold, Silver Prices:\n\n"
         f"1. GOLD\n"
-        f"  (a) Gold (24k per Gram): {INR_SYMBOL} {prices['gold_24k_per_gram']:.2f}\n"
-        f"  (b) Gold (22k per Gram): {INR_SYMBOL} {prices['gold_22k_per_gram']:.2f}\n"
-        f"  (c) Gold (18k per Gram): {INR_SYMBOL} {prices['gold_18k_per_gram']:.2f}\n\n"
+        f"  (a) 24k: {INR_SYMBOL} {prices['gold_24k_per_gram']:.2f} per gram | "
+        f"{INR_SYMBOL} {prices['gold_24k_8gram']:.2f} (8g) | "
+        f"{INR_SYMBOL} {prices['gold_24k_10gram']:.2f} (10g)\n"
+        f"  (b) 22k: {INR_SYMBOL} {prices['gold_22k_per_gram']:.2f} per gram | "
+        f"{INR_SYMBOL} {prices['gold_22k_8gram']:.2f} (8g) | "
+        f"{INR_SYMBOL} {prices['gold_22k_10gram']:.2f} (10g)\n"
+        f"  (c) 18k: {INR_SYMBOL} {prices['gold_18k_per_gram']:.2f} per gram | "
+        f"{INR_SYMBOL} {prices['gold_18k_8gram']:.2f} (8g) | "
+        f"{INR_SYMBOL} {prices['gold_18k_10gram']:.2f} (10g)\n\n"
         f"2. SILVER\n"
         f"  (a) Silver (per Gram): {INR_SYMBOL} {prices['silver_per_gram']:.2f}\n"
         f"  (b) Silver (per Kg): {INR_SYMBOL} {prices['silver_per_kg']:.2f}\n\n"
